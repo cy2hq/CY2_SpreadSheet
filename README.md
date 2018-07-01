@@ -9,7 +9,7 @@ The PeopleSoft delivered PSSpredSheet is a little lacking in features (cannot re
 3. Only writes XLSX (but do care about XLS anymore?)
 4. Needs real tests
 
-#[Documentation](Documentation.md)
+# [Documentation](Documentation.md)
 # Examples
 ## Creating a spreadsheet
 ```
