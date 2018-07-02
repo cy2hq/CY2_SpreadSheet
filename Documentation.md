@@ -131,3 +131,25 @@ Retrieves the DateTime value of a cell and places its value into the out paramet
    * `column` — The column number of the cell. It must be a positive integer.
    
  * **Returns:** Boolean - a DateTime value was successfully retrieved.
+ 
+## `method RenameSheet(&oldName As string, &newName As string)`
+
+Rename a worksheet. If the requested worksheet does not exist, nothing happend.
+
+ * **Parameters:**
+   * `oldName` — The name of the old worksheet to rename
+   * `newName` — The new name for the worksheet
+   
+## `method RenameCurrentSheet(&newName As string)`
+
+Rename the current worksheet.
+
+ * **Parameters:**
+   * `newName` — The new name for the worksheet
+   
+## `method SelectSheet(&name As string)`
+
+he requested worksheet becomes the current worksheet. If the requested worksheet does not exist, nothing happend.
+
+ * **Parameters:**
+   * `name` — The name of the worksheet to select  

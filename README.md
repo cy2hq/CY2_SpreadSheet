@@ -16,7 +16,6 @@ The PeopleSoft delivered PSSpredSheet is a little lacking in features (cannot re
 import CY2_SPREADSHEET:Workbook;
 
 Local CY2_SPREADSHEET:Workbook &sheet = create CY2_SPREADSHEET:Workbook(&path);
-&sheet.CreateSheet("test1");
 &sheet.SetCellString(1, 1, "test");
 &sheet.SetCellNumber(1, 2, 1);
 &sheet.SetCellNumber(1, 3, 2.2);
@@ -31,9 +30,6 @@ Local CY2_SPREADSHEET:Workbook &sheet = create CY2_SPREADSHEET:Workbook(&path);
 ```import CY2_SPREADSHEET:Workbook;
 
 Local CY2_SPREADSHEET:Workbook &sheet = create CY2_SPREADSHEET:Workbook(&path);
-
-/* replace once we have a set active sheet function */
-&sheet.CreateSheet("test");
 
 Local string &string = &sheet.GetCellString(1, 1);
 
