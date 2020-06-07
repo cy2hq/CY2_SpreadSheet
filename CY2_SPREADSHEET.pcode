@@ -1,0 +1,722 @@
+<* 
+MIT License
+
+Copyright (c) 2018-2020 
+CY2 IT Services - https://cy2.nl
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE. 
+*>
+
+class Workbook
+   /**
+    * Workbook constructor
+    *
+    * @param p_file The full path and file name of the Excel file to open or create.
+    * @exception An exception thrown if the file path does not exist or cannot be created.
+    */
+   method Workbook(&p_filePath As string);
+   
+   /**
+    * Creates a worksheet in the workbook with the given name and makes it the
+    * active sheet. A sheet with that name already exists, it becomes active.
+    * Sheets are modified to meet Excel sheet name requirements.
+    * 
+    * @param name The name of the worksheet to create
+    */
+   method CreateSheet(&name As string);
+   
+   /** 
+     * Saves the Excel file and creates the file if it doesn't exist.
+     */
+   method Save();
+   
+   /**
+    * Set the value of the given cell to the given string value. If the row or
+    * column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param string The string value to set the cell to.
+    */
+   method SetCellString(&row As integer, &column As integer, &string As string);
+   
+   /**
+    * Set the value of the given cell to the given numeric value. If the row or
+    * column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param value The number to set the cell to.
+    */
+   method SetCellNumber(&row As integer, &column As integer, &value As number);
+   
+   /**
+    * Set the value of the given cell to the given numeric value with the given Excel format. 
+    * If the row or column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param number The number to set the cell to.
+    * @param format The Excel format to apply to the number.
+    */
+   method SetCellNumberFormat(&row As integer, &column As integer, &value As number, &format As string);
+   
+   /**
+    * Set the value of the given cell to the given date value. The DateTime is formatted as
+    * dd/mm/yyyy hh:mm:ss .If the row or column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param dateTime The DateTime value to set the cell to.
+    */
+   method SetCellDateTime(&row As integer, &column As integer, &dateTime As datetime);
+   
+   /**
+    * Set the value of the given cell to the given date value. The Date is formatted as
+    * dd/mm/yyyy .If the row or column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param dateTime The Date value to set the cell to
+    */
+   method SetCellDate(&row As integer, &column As integer, &date As date);
+   
+   /**
+    * Set the value of the given cell to the given Boolean value. 
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param dateTime The Boolean value to set the cell to
+    */
+   method SetCellBoolean(&row As integer, &column As integer, &boolean As boolean);
+   
+   rem  method SetCellDateTimeFormated(&row As integer, &column As integer, &date As datetime, &locale As string, &timezone As string, &format As string);
+   rem  method SetCellDateFormated(&row As integer, &column As integer, &date As datetime, &locale As string, &timezone As string, &format As string);
+   
+   /**
+    * Set the value of the given cell to the given formula value. If the row or
+    * column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param formula The formula
+    */
+   method SetCellFormula(&row As integer, &column As integer, &formula As string);
+   
+   /**
+    * Set the value of the given cell to the given hyperlink. If the row or
+    * column number is not positive, nothing is done.
+    *
+    * @param row The row number of the cell to set. It must be a positive integer.
+    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param text The text value of the cell.
+    * @param column The URL the link points to.
+    */
+   method SetCellHyperlink(&row As integer, &column As integer, &text As string, &url As string);
+   
+   /**
+     * Returns the value of the requested cell as a string. 
+     * If the cell does not exist (or an invalid cell location is given)
+     * an empty string is returned.
+     * 
+     * @param row The row number of the cell. It must be a positive integer.
+     * @param column The column number of the cell. It must be a positive integer.
+     * @return String - the string value of the cell. If the cell is not a string cell
+     * the value is converted into string.
+     */
+   method GetCellString(&row As integer, &column As integer) Returns string;
+   
+   /**
+     * Retrieves the numeric value of a cell and places it value into the out parameter &value. 
+     * 
+     * @param row The row number of the cell. It must be a positive integer.
+     * @param column The column number of the cell. It must be a positive integer.
+     * @param value The numeric value of a cell if it contains a numeric value or if cell
+     * value can be conveted to a number.
+     * @return Boolean - a numeric value was successfully retrieved.
+     */
+   method GetCellNumber(&row As integer, &column As integer, &value As number out) Returns boolean;
+   
+   /**
+     * Retrieves the Boolean value of a cell and places it value into the out parameter &value. 
+     *
+     * @param row The row number of the cell. It must be a positive integer.
+     * @param column The column number of the cell. It must be a positive integer.
+     * @param value The Boolean value of a cell if it contains a Boolean value or if cell
+     * value can be conveted to a Boolean.
+     * @return Boolean - a numeric value was successfully retrieved.
+     */
+   method GetCellBoolean(&row As integer, &column As integer, &value As boolean out) Returns boolean;
+   
+   /**
+     * Retrieves the DateTime value of a cell and places it value into the out parameter &value. 
+     * 
+     * @param row The row number of the cell. It must be a positive integer.
+     * @param column The column number of the cell. It must be a positive integer.
+     * @param value The DataTime value of a cell if it contains a date or date/time value or if cell
+     * value can be conveted to a DateTime.
+     * @return Boolean - a DateTime value was successfully retrieved.
+     */
+   method GetCellDateTime(&row As integer, &column As integer, &value As datetime out) Returns boolean;
+   
+   /**
+     * Rename a worksheet. If the requested worksheet does not exist, nothing happend.
+     *
+     * @param oldName The name of the old worksheet to rename
+     * @param newName The new name for the worksheet
+     */
+   method RenameSheet(&oldName As string, &newName As string);
+   
+   /**
+     * Rename the current worksheet. 
+     *
+     * @param oldName The name of the old worksheet to rename
+     * @param newName The new name for the worksheet
+     */
+   method RenameCurrentSheet(&newName As string);
+   
+   /**
+     * The requested worksheet becomes the current worksheet.
+     * If the requested worksheet does not exist, nothing happend.
+     * 
+     * @param name The name of the worksheet to select
+     */
+   method SelectSheet(&name As string);
+   
+   /** 
+     * Deletes/removes a row from the active worksheet.
+     *
+     * @param row The row to delete
+     */
+   method DeleteRow(&row As integer);
+   
+   /** 
+     * Crears the data from the requested row, does not remove it, 
+     * from the active worksheert
+     *
+     * @param row The row to clear
+     */
+   method ClearRow(&row As integer);
+   
+   /** 
+     * Moves a group of rows up or down by the given the given number, 
+     * from the active worksheert
+     *
+     * @param &startRow The starting row (inclusive) of the group
+     * @param &endRow The ending row (inclusive) of the group
+     * @param &numberOfRows The rows to shift the group. To shift the group up
+     * a negative number should be used.
+     */
+   method ShiftRows(&startRow As integer, &endRow As integer, &numberOfRows As integer);
+   
+   /** 
+     * Save workbook to the given path. 
+     *
+     * @param &path The full path to save the workbook to.
+     */
+   method SaveAs(&path As string);
+   
+   /** Close the workbook and clean up and temp files */
+   method Close();
+   
+   /* Default Formats */
+   /* Defaults to "dd/MM/yyyy HH:mm:ss" */
+   property string DateTimeFormat;
+private
+   Constant &NumericCell = 0;
+   Constant &StringCell = 1;
+   Constant &FormulaCell = 2;
+   Constant &BlankCell = 3;
+   Constant &BooleanCell = 4;
+   Constant &ErrorCell = 5;
+   
+   method GetCell(&row As integer, &column As integer) Returns JavaObject;
+   instance JavaObject &_workbook;
+   instance JavaObject &_workBookUtils;
+   instance JavaObject &_activeSheet;
+   instance JavaObject &_creationHelper;
+   instance JavaObject &_fontClass;
+   instance JavaObject &_indexedColors;
+   instance JavaObject &_dateUtil;
+   
+   instance string &_filePath;
+   
+end-class;
+
+
+method Workbook
+   /+ &p_filePath as String +/
+   rem   &_workbook = CreateJavaObject("com.peoplesoft.pt.psspreadsheet.impl.PSFTWorkBookImpl", &p_file, True, False);
+   &_filePath = &p_filePath;
+   Local JavaObject &inputSream;
+   Local JavaObject &workbookFactory = GetJavaClass("org.apache.poi.ss.usermodel.WorkbookFactory");
+   
+   If Not FileExists(&_filePath, %FilePath_Absolute) Then
+      /* this is a temp hack until we find a better way than this or using reflection... 
+         There is a glitch with PS not being able to find the XSSFWorkbook methods (cannot find override)
+         unless we use reflection. so, we'll create an empty file and load it back, 
+         to we have a type of Workbook. 
+         note, casting did not solve this issue (also problem here with PS so we have to use
+            &_workbook.getClass().getClassLoader() otherwise we get a class not found exception.
+            maybe because Workbook and XSSFWorkbook are different jar files?
+            Local JavaObject &class = GetJavaClass("java.lang.Class").forName("org.apache.poi.ss.usermodel.Workbook", True, &workbook.getClass().getClassLoader());
+            &_workbook = &class.cast(&workbook);
+       */
+      
+      Local JavaObject &workbook = CreateJavaObject("org.apache.poi.xssf.usermodel.XSSFWorkbook");
+      Local JavaObject &class = &workbook.getClass();
+      Local JavaObject &javaString = CreateJavaObject("java.lang.String", "Sheet1");
+      Local JavaObject &stringType = CreateJavaObject("java.lang.Class[]", &javaString.getClass());
+      Local JavaObject &createSheet = &class.getDeclaredMethod("createSheet", &stringType);
+      Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &javaString);
+      &createSheet.invoke(&workbook, &args);
+      
+      Local JavaObject &outStream = CreateJavaObject("java.io.FileOutputStream", &_filePath);
+      &workbook.write(&outStream);
+      &outStream.close();
+      &workbook = Null;
+   End-If;
+   
+   &inputSream = CreateJavaObject("java.io.FileInputStream", &_filePath);
+   &_workbook = &workbookFactory.create(&inputSream);
+   &_activeSheet = &_workbook.getSheetAt(&_workbook.getActiveSheetIndex());
+   
+   &_workBookUtils = GetJavaClass("org.apache.poi.ss.util.WorkbookUtil");
+   &_creationHelper = &_workbook.getCreationHelper();
+   
+   &_fontClass = GetJavaClass("org.apache.poi.ss.usermodel.Font");
+   &_indexedColors = GetJavaClass("org.apache.poi.ss.usermodel.IndexedColors");
+   &_dateUtil = GetJavaClass("org.apache.poi.ss.usermodel.DateUtil");
+   &DateTimeFormat = "dd/MM/yyyy HH:mm:ss";
+   
+end-method;
+
+method CreateSheet
+   /+ &name as String +/
+   
+   Local string &cleanName = &_workBookUtils.createSafeSheetName(&name);
+   If &_workbook.getSheet(&cleanName) = Null Then
+      &_activeSheet = &_workbook.createSheet(&cleanName);
+   Else
+      &_activeSheet = &_workbook.getSheet(&cleanName);
+   End-If;
+   &_workbook.setActiveSheet(&_workbook.getSheetIndex(&cleanName));
+   
+end-method;
+
+method Save
+   Local JavaObject &outStream = CreateJavaObject("java.io.FileOutputStream", &_filePath);
+   &_workbook.write(&outStream);
+   &outStream.close();
+end-method;
+
+method SetCellString
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &string as String +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   &cell.setCellType(&StringCell);
+   &cell.setCellValue(&string);
+end-method;
+
+method SetCellDate
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &date as Date +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   Local datetime &dateTime = DateTime6(Year(&date), Month(&date), Day(&date), 0, 0, 0);
+   &cell.setCellValue(&dateTime);
+   Local JavaObject &style = &_workbook.createCellStyle();
+   &style.setDataFormat(&_creationHelper.createDataFormat().getFormat("dd/mm/yyyy"));
+   &cell.setCellStyle(&style);
+end-method;
+
+method SetCellDateTime
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &dateTime as DateTime +/
+   
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   &cell.setCellValue(&dateTime);
+   Local JavaObject &style = &_workbook.createCellStyle();
+   &style.setDataFormat(&_creationHelper.createDataFormat().getFormat("dd/mm/yyyy hh:mm:ss"));
+   &cell.setCellStyle(&style);
+end-method;
+
+method SetCellFormula
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &formula as String +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   Local string &first = Substring(&formula, 1, 1);
+   
+   /* formulas cannot start with an equal sign */
+   If &first = "=" Then
+      &formula = Substring(&formula, 2, Len(&formula) - 1);
+   End-If;
+   &cell.setCellType(&FormulaCell);
+   &cell.setCellFormula(&formula);
+end-method;
+
+method SetCellNumber
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &value as Number +/
+   %This.SetCellNumberFormat(&row, &column, &value, "");
+end-method;
+
+method SetCellNumberFormat
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &value as Number, +/
+   /+ &format as String +/
+   
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   &cell.setCellType(&NumericCell);
+   &cell.setCellValue(Float(&value));
+   If &format <> "" Then
+      Local JavaObject &cellStyle = &_workbook.createCellStyle();
+      Local JavaObject &currentStyle = &cell.getCellStyle();
+      &cellStyle.cloneStyleFrom(&currentStyle);
+      
+      &cellStyle.setDataFormat(&_creationHelper.createDataFormat().getFormat(&format));
+      &cell.setCellStyle(&cellStyle);
+   End-If;
+end-method;
+
+method SetCellHyperlink
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &text as String, +/
+   /+ &url as String +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   
+   &cell.setCellValue(&text);
+   Local JavaObject &style = &_workbook.createCellStyle();
+   Local JavaObject &font = &_workbook.createFont();
+   &font.setUnderline(&_fontClass.U_SINGLE);
+   &font.setColor(&_indexedColors.BLUE.getIndex());
+   &style.setFont(&font);
+   
+   /* depending on the tools version, the version of createHyperlink is different (differnt POI version) 
+      need to figure out a better way here
+   */
+   Local JavaObject &link;
+   try
+      &link = &_creationHelper.createHyperlink(1);
+   catch Exception &exp
+      Local JavaObject &hyperlinkClass = GetJavaClass("org.apache.poi.common.usermodel.HyperlinkType");
+      &link = &_creationHelper.createHyperlink(&hyperlinkClass.URL);
+   end-try;
+   &link.setAddress(&url);
+   &cell.setHyperlink(&link);
+   &cell.setCellStyle(&style);
+   
+end-method;
+
+method SetCellBoolean
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &boolean as Boolean +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return;
+   End-If;
+   &cell.setCellType(&BooleanCell);
+   &cell.setCellValue(&boolean);
+   
+end-method;
+
+method GetCellString
+   /+ &row as Integer, +/
+   /+ &column as Integer +/
+   /+ Returns String +/
+   
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return "";
+   End-If;
+   
+   Local boolean &success = False;
+   
+   Evaluate &cell.getCellType()
+   When &NumericCell
+      If &_dateUtil.isCellDateFormatted(&cell) Then
+         Return DateTimeToLocalizedString(&cell.getDateCellValue(), &DateTimeFormat);
+      Else
+         Return RTrim(RTrim(String(&cell.getNumericCellValue()), "0"), ".");
+      End-If;
+      Break;
+      
+   When &StringCell
+      Return LTrim(RTrim(&cell.getStringCellValue()));
+      Break;
+      /* formula cell, returns formula not the resolved value */
+      
+   When &FormulaCell
+      Return LTrim(RTrim(&cell.getCellFormula()));
+      Break;
+      
+   When &BooleanCell
+      If &cell.getBooleanCellValue() Then
+         Return "TRUE"
+      Else
+         Return "FALSE";
+      End-If;
+      Break;
+      
+   When &ErrorCell
+      Return "error: " | String(&cell.getErrorCellValue());
+      Break;
+      
+      /* blank or null cell */
+   When-Other
+      Return "";
+   End-Evaluate
+end-method;
+
+
+method GetCellNumber
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &value as Number out +/
+   /+ Returns Boolean +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return False;
+   End-If;
+   
+   Local boolean &success = False;
+   Evaluate &cell.getCellType()
+   When &NumericCell
+      &value = &cell.getNumericCellValue();
+      &success = True;
+      Break;
+      
+   When &StringCell
+      try
+         &value = Value(&cell.getStringCellValue());
+         &success = True;
+      catch Exception &exp
+      end-try;
+      Break;
+   End-Evaluate;
+   
+   Return &success;
+end-method;
+
+method GetCellBoolean
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &value as Boolean out +/
+   /+ Returns Boolean +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return False;
+   End-If;
+   
+   Local boolean &success = False;
+   Evaluate &cell.getCellType()
+   When &BooleanCell
+      &value = &cell.getBooleanCellValue();
+      &success = True;
+      Break;
+   When &NumericCell
+      Local number &number = &cell.getNumericCellValue();
+      If &number = 1 Then
+         &value = True;
+         &success = True;
+      End-If;
+      If &number = 0 Then
+         &value = False;
+         &success = True;
+      End-If;
+      
+   When &StringCell
+      try
+         Local string &string = LTrim(RTrim(Upper(&cell.getStringCellValue())));
+         If &string = "TRUE" Or
+               &string = "Y" Or
+               &string = "1" Then
+            &value = True;
+            &success = True;
+         End-If;
+         If &string = "FALSE" Or
+               &string = "N" Or
+               &string = "0" Then
+            &value = False;
+            &success = True;
+         End-If;
+      catch Exception &exp
+      end-try;
+      Break;
+   End-Evaluate;
+   
+   Return &success;
+end-method;
+
+method GetCellDateTime
+   /+ &row as Integer, +/
+   /+ &column as Integer, +/
+   /+ &value as DateTime out +/
+   /+ Returns Boolean +/
+   Local JavaObject &cell = %This.GetCell(&row, &column);
+   If &cell = Null Then
+      Return False;
+   End-If;
+   
+   Local boolean &success = False;
+   Evaluate &cell.getCellType()
+   When &NumericCell
+      &value = &cell.getDateCellValue();
+      &success = True;
+      Break;
+   When &StringCell
+      try
+         &value = DateTimeValue(&cell.getStringValue());
+         &success = True;
+      catch Exception &exp
+      end-try;
+      Break;
+   End-Evaluate;
+   Return &success;
+end-method;
+
+method GetCell
+   /+ &row as Integer, +/
+   /+ &column as Integer +/
+   /+ Returns JavaObject +/
+   If &row < 1 Or
+         &column < 1 Or
+         &column > 1048576 Then
+      Return Null;
+   End-If;
+   
+   Local JavaObject &sheetRow = &_activeSheet.getRow(&row - 1);
+   If &sheetRow = Null Then
+      &sheetRow = &_activeSheet.createRow(&row - 1);
+   End-If;
+   
+   Local JavaObject &cell = &sheetRow.getCell(&column - 1);
+   If &cell = Null Then
+      &cell = &sheetRow.createCell(&column - 1);
+   End-If;
+   
+   Return &cell;
+end-method;
+
+method RenameSheet
+   /+ &oldName as String, +/
+   /+ &newName as String +/;
+   
+   Local string &cleanOldName = &_workBookUtils.createSafeSheetName(&oldName);
+   Local integer &index = &_workbook.getSheetIndex(&cleanOldName);
+   If &index >= 0 Then
+      Local string &cleanNewName = &_workBookUtils.createSafeSheetName(&newName);
+      &_workbook.setSheetName(&index, &cleanNewName);
+   End-If;
+end-method;
+
+method SelectSheet
+   /+ &name as String +/
+   Local string &cleanName = &_workBookUtils.createSafeSheetName(&name);
+   Local integer &index = &_workbook.getSheetIndex(&name);
+   If &index >= 0 Then
+      &_activeSheet = &_workbook.getSheetAt(&index);
+      
+      &_workbook.setActiveSheet(&index);
+   End-If;
+   
+end-method;
+
+method RenameCurrentSheet
+   /+ &newName as String +/
+   %This.RenameSheet(&_activeSheet.getSheetName(), &newName);
+end-method;
+
+method ClearRow
+   /+ &row as Integer +/
+   If &row < 1 Or
+         &row >= &_activeSheet.getLastRowNum() Then
+      Return;
+   End-If;
+   
+   &_activeSheet.removeRow(&_activeSheet.getRow(&row - 1));
+end-method;
+
+method ShiftRows
+   /+ &startRow as Integer, +/
+   /+ &endRow as Integer, +/
+   /+ &numberOfRows as Integer +/
+   If &startRow < 1 Or
+         &startRow >= &_activeSheet.getLastRowNum() Then
+      Return;
+   End-If;
+   
+   If &endRow < 1 Or
+         &endRow >= &_activeSheet.getLastRowNum() Then
+      Return;
+   End-If;
+   
+   If &endRow <= &startRow Then
+      Return;
+   End-If;
+   
+   &_activeSheet.shiftRows(&startRow - 1, &endRow - 1, &numberOfRows);
+end-method;
+
+method DeleteRow
+   /+ &row as Integer +/
+   If &row < 1 Or
+         &row > &_activeSheet.getLastRowNum() Then
+      Return;
+   End-If;
+   
+   &_activeSheet.shiftRows(&row, &_activeSheet.getLastRowNum(), - 1);
+end-method;
+
+method SaveAs
+   /+ &path as String +/
+   Local JavaObject &outStream = CreateJavaObject("java.io.FileOutputStream", &path);
+   &_workbook.write(&outStream);
+   &outStream.close();
+end-method;
+
+method Close
+   &_workbook.close();
+end-method;
+
