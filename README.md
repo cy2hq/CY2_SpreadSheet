@@ -3,11 +3,6 @@ Read and write Excel spreadsheets from PeopleSoft
 
 The PeopleSoft delivered PSSpredSheet is lacking in features (cannot read data) and a little buggy.  This is a PeopleCode wrapper around Apache POI library that ships with PeopleSoft. Works with PeopleTools 8.55 or later.
 
-# Known Issues
-1. Timezone issues
-2. Only writes XLSX (but do care about XLS anymore?)
-3. Needs better/real tests
-
 # [Documentation](Documentation.md)
 # Examples
 ## Creating a spreadsheet
