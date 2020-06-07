@@ -207,8 +207,8 @@ class Workbook
    method DeleteRow(&row As integer);
    
    /** 
-     * Crears the data from the requested row, does not remove it, 
-     * from the active worksheert
+     * Clears the data from the requested row, does not remove it, 
+     * from the active worksheet
      *
      * @param row The row to clear
      */
@@ -216,7 +216,7 @@ class Workbook
    
    /** 
      * Moves a group of rows up or down by the given the given number, 
-     * from the active worksheert
+     * from the active worksheet
      *
      * @param &startRow The starting row (inclusive) of the group
      * @param &endRow The ending row (inclusive) of the group
@@ -232,7 +232,7 @@ class Workbook
      */
    method SaveAs(&path As string);
    
-   /** Close the workbook and clean up and temp files */
+   /** Close the workbook and clean up and temp resources */
    method Close();
    
    /* Default Formats */
