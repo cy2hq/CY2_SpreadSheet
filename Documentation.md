@@ -153,3 +153,37 @@ The requested worksheet becomes the current worksheet. If the requested workshee
 
  * **Parameters:**
    * `name` — The name of the worksheet to select  
+   
+#### `method DeleteRow(&row As integer)`
+
+Deletes/removes a row from the active worksheet.
+
+* **Parameters:**
+  * `row` — The row to delete
+
+#### `method CleareRow(&row As integer)`
+
+Clears the data from the requested row, does not remove it, from the active worksheet
+
+* **Parameters:**
+  * `row` — The row to clear
+
+#### `method ShiftRows(&startRow As integer, &endRow As integer, &numberOfRows As integer)`
+
+Moves a group of rows up or down by the given the given number, from the active worksheet
+
+* **Parameters:**
+  * `startRow` — The starting row (inclusive) of the group
+  * `endRow` — The ending row (inclusive) of the group
+  * `numberOfRows` — The rows to shift the group. To shift the group up
+
+#### `method SaveAs(&row As integer)`
+
+Save workbook to the given path.
+
+* **Parameters:**
+  * `path` — The full path to save the workbook to
+
+#### `method Close()`
+
+Close the workbook and clean up any temp resources
