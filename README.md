@@ -3,6 +3,8 @@ Read and write Excel spreadsheets from PeopleSoft
 
 The PeopleSoft delivered PSSpredSheet is lacking in features (cannot read data) and a little buggy.  This is a PeopleCode wrapper around Apache POI library that ships with PeopleSoft. Works with PeopleTools 8.55 or later.
 
+The code is in a single file (CY2_SPREADSHEET.pcode) or you can import the Application Designer package in the CY2_SPREADSHEET directory. Feel free to change the application package or class name, but please keep the copyright notice in the code.
+
 # [Documentation](Documentation.md)
 # Examples
 ## Creating a spreadsheet
