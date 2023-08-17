@@ -1,13 +1,17 @@
 # CY2 SpreadSheet
+
 Read and write Excel spreadsheets from PeopleSoft.
 
 This is a PeopleCode wrapper around Apache POI library that ships with PeopleSoft. Works with PeopleTools 8.55 or later.
 
-The code is in a single file [(CY2_SPREADSHEET.pcode)](CY2_SPREADSHEET.pcode) or you can import the Application Designer package in the CY2_SPREADSHEET directory. Feel free to change the application package name to suite your naming conventions, but please keep the copyright notice in the code.
+The code is in a two files [(CY2_SPREADSHEET:Workbook.pcode)](CY2_SPREADSHEET:Workbook.pcode) and [(CY2_SPREADSHEET:StreamingWorkbook.pcode)](CY2_SPREADSHEET:StreamingWorkbook.pcode), or you can import the Application Designer package in the CY2_SPREADSHEET directory. Note: The StreamingWorkbork is only for creating Excel files (usually large ones), and the API is the same except the read methods have been removed. Feel free to change the application package name to suite your naming conventions, but please keep the copyright notice in the code.
 
 # [Documentation](Documentation.md)
+
 # Examples
+
 ## Creating a spreadsheet
+
 ```
 import CY2_SPREADSHEET:Workbook;
 
@@ -23,6 +27,7 @@ Local CY2_SPREADSHEET:Workbook &workbook = create CY2_SPREADSHEET:Workbook(&full
 ```
 
 ## Reading data from a spreadsheet
+
 ```
 import CY2_SPREADSHEET:Workbook;
 

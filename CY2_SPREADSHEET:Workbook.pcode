@@ -1,7 +1,7 @@
 <* 
 MIT License
 
-Copyright (c) 2018-2020 
+Copyright (c) 2018-2023
 CY2 IT Services - https://cy2.nl
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -22,6 +22,9 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE. 
 *>
+
+/* CY2 MC 17-12-2022 - reuse cell style */
+/* CY2 ELH 06-06-2023 - check XLSX files */
 
 class Workbook
    /**
@@ -92,7 +95,7 @@ class Workbook
     * dd/mm/yyyy .If the row or column number is not positive, nothing is done.
     *
     * @param row The row number of the cell to set. It must be a positive integer.
-    * @param column The column number of the cell to set. It must be a positive integer.
+    * @param column The column number of the ceanll to set. It must be a positive integer.
     * @param dateTime The Date value to set the cell to
     */
    method SetCellDate(&row As integer, &column As integer, &date As date);
@@ -238,15 +241,46 @@ class Workbook
    /* Default Formats */
    /* Defaults to "dd/MM/yyyy HH:mm:ss" */
    property string DateTimeFormat;
+   
+   /* Adjust date's day value in accordance to local timezone */
+   /* Defaults to False for backward compatibility */
+   property boolean LocalTimezoneAdjustment;
+   
 private
-   Constant &NumericCell = 0;
-   Constant &StringCell = 1;
-   Constant &FormulaCell = 2;
-   Constant &BlankCell = 3;
-   Constant &BooleanCell = 4;
-   Constant &ErrorCell = 5;
+   
+   Constant &NumericCell = "NUMERIC";
+   Constant &StringCell = "STRING";
+   Constant &FormulaCell = "FORMULA";
+   Constant &BlankCell = "BLANK";
+   Constant &NoneCell = "_NONE";
+   Constant &BooleanCell = "BOOLEAN";
+   Constant &ErrorCell = "ERROR";
    
    method GetCell(&row As integer, &column As integer) Returns JavaObject;
+   method GetSheet(&sheetName As string) Returns JavaObject;
+   method GetSheetAt(&index As integer) Returns JavaObject;
+   method CreateNewSheet(&sheetName As string) Returns JavaObject;
+   method GetRow(&index As integer) Returns JavaObject;
+   method CreateRow(&index As integer) Returns JavaObject;
+   method GetSheetCell(&sheetRow As JavaObject, &index As integer) Returns JavaObject;
+   method CreateSheetCell(&sheetRow As JavaObject, &index As integer) Returns JavaObject;
+   method CreateCellStyle() Returns JavaObject;
+   method GetCellStyle(&cell As JavaObject) Returns JavaObject;
+   method CreateDataFormat() Returns JavaObject;
+   method CreateFont() Returns JavaObject;
+   method CreateHyperlink(&type As JavaObject) Returns JavaObject;
+   method SetDataFormat(&cellStyle As JavaObject, &dataFormat As integer);
+   method CreateWorkbook(&inputSream As JavaObject) Returns JavaObject;
+   
+   
+   /** 
+     * Adjust date day value in accordance to local timezone 
+     * Apache POI uses the server timezone to transform date values to string values 
+     * method adjust the day value in a date in case its off by 1 day due to server timezone issues
+     *
+     * @param &dttm the time that should be adjusted against local timezone*/
+   method ApplyLocalTimezoneAdjustment(&dttm As datetime) Returns datetime;
+   
    instance JavaObject &_workbook;
    instance JavaObject &_workBookUtils;
    instance JavaObject &_activeSheet;
@@ -254,21 +288,46 @@ private
    instance JavaObject &_fontClass;
    instance JavaObject &_indexedColors;
    instance JavaObject &_dateUtil;
-   
+   instance JavaObject &_createSheetMethod;
+   instance JavaObject &_getSheetMethod;
+   instance JavaObject &_getSheetAtMethod;
+   instance JavaObject &_getRowMethod;
+   instance JavaObject &_createRowMethod;
+   instance JavaObject &_getCellMethod;
+   instance JavaObject &_createCellStyleMethod;
+   instance JavaObject &_createCellMethod;
+   instance JavaObject &_getCellStyleMethod;
+   instance JavaObject &_setDataFormatMethod;
+   instance JavaObject &_createFontMethod;
+   instance JavaObject &_createHyperlinkMethod;
+   instance JavaObject &_dataFormat;
+   instance JavaObject &_workbookClass;
    instance string &_filePath;
    
+   instance JavaObject &_dateStyle;
+   instance JavaObject &_dateTimeStyle;
+   instance JavaObject &_cellStyle;
 end-class;
 
 
 method Workbook
    /+ &p_filePath as String +/
-   rem   &_workbook = CreateJavaObject("com.peoplesoft.pt.psspreadsheet.impl.PSFTWorkBookImpl", &p_file, True, False);
    &_filePath = &p_filePath;
-   Local JavaObject &inputSream;
-   Local JavaObject &workbookFactory = GetJavaClass("org.apache.poi.ss.usermodel.WorkbookFactory");
    
-   If Not FileExists(&_filePath, %FilePath_Absolute) Then
-      /* this is a temp hack until we find a better way than this or using reflection... 
+   /* the class supports XLSX files only so we validate the file name */
+   Local array of string &split = Split(&_filePath, ".");
+   Local string &ext = &split [&split.Len];
+   
+   /* CY2 ELH 06-06-2023 start */
+   If Upper(&ext) <> "XLSX" Then
+      Error MsgGetText(0, 0, "Your file has the wrong extension: %1, the program only support XLSX files", &ext);
+   Else
+      /* CY2 ELH 06-06-2023 end */
+      Local JavaObject &inputSream;
+      Local JavaObject &workbookFactory = GetJavaClass("org.apache.poi.xssf.usermodel.XSSFWorkbookFactory");
+      
+      If Not FileExists(&_filePath, %FilePath_Absolute) Then
+         /* this is a temp hack until we find a better way than this or using reflection... 
          There is a glitch with PS not being able to find the XSSFWorkbook methods (cannot find override)
          unless we use reflection. so, we'll create an empty file and load it back, 
          to we have a type of Workbook. 
@@ -278,44 +337,70 @@ method Workbook
             Local JavaObject &class = GetJavaClass("java.lang.Class").forName("org.apache.poi.ss.usermodel.Workbook", True, &workbook.getClass().getClassLoader());
             &_workbook = &class.cast(&workbook);
        */
+         Local JavaObject &workbook = CreateJavaObject("org.apache.poi.xssf.usermodel.XSSFWorkbook");
+         Local JavaObject &class = &workbook.getClass();
+         Local JavaObject &javaString = CreateJavaObject("java.lang.String", "Sheet1");
+         Local JavaObject &stringType = CreateJavaObject("java.lang.Class[]", &javaString.getClass());
+         Local JavaObject &createSheet = &class.getDeclaredMethod("createSheet", &stringType);
+         Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &javaString);
+         &createSheet.invoke(&workbook, &args);
+         
+         Local JavaObject &outStream = CreateJavaObject("java.io.FileOutputStream", &_filePath);
+         &workbook.write(&outStream);
+         &outStream.close();
+         &workbook = Null;
+         &class = Null;
+      End-If;
       
-      Local JavaObject &workbook = CreateJavaObject("org.apache.poi.xssf.usermodel.XSSFWorkbook");
-      Local JavaObject &class = &workbook.getClass();
-      Local JavaObject &javaString = CreateJavaObject("java.lang.String", "Sheet1");
-      Local JavaObject &stringType = CreateJavaObject("java.lang.Class[]", &javaString.getClass());
-      Local JavaObject &createSheet = &class.getDeclaredMethod("createSheet", &stringType);
-      Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &javaString);
-      &createSheet.invoke(&workbook, &args);
+      &inputSream = CreateJavaObject("java.io.FileInputStream", &_filePath);
+      rem Local JavaObject &createWorkbook = CreateJavaObject("org.apache.poi.xssf.usermodel.XSSFWorkbookFactory").getClass().getDeclaredMethod("createWorkbook", CreateJavaObject("java.lang.Class[]", GetJavaClass("java.lang.Class").forName("java.io.InputStream")));
+      rem &_workbook = &createWorkbook.invoke(&workbookFactory, CreateJavaObject("java.lang.Object[]", &inputSream));
+      rem &_workbook = &_workbook.getClass().cast(&_workbook);
       
-      Local JavaObject &outStream = CreateJavaObject("java.io.FileOutputStream", &_filePath);
-      &workbook.write(&outStream);
-      &outStream.close();
-      &workbook = Null;
+      try
+         /* Apache POI Pre-5.0 way of creating worbook */
+         &_workbook = &workbookFactory.createWorkbook(&inputSream);
+      catch Exception &ex
+         /* Apache POI 5.0 way of creating worbook */
+         &_workbook = %This.CreateWorkbook(&inputSream);
+      end-try;
+      
+      &_workbookClass = &_workbook.getClass();
+      
+      &_activeSheet = %This.GetSheetAt(&_workbook.getActiveSheetIndex());
+      
+      &_workBookUtils = GetJavaClass("org.apache.poi.ss.util.WorkbookUtil");
+      Local JavaObject &getCreationHelper = &_workbookClass.getDeclaredMethod("getCreationHelper", CreateJavaObject("java.lang.Class[]"));
+      &_creationHelper = &getCreationHelper.invoke(&_workbook, CreateJavaObject("java.lang.Object[]"));
+      &_creationHelper = &_creationHelper.getClass().cast(&_creationHelper);
+      &_dataFormat = %This.CreateDataFormat();
+      
+      &_fontClass = GetJavaClass("org.apache.poi.ss.usermodel.Font");
+      &_indexedColors = GetJavaClass("org.apache.poi.ss.usermodel.IndexedColors");
+      &_dateUtil = GetJavaClass("org.apache.poi.ss.usermodel.DateUtil");
+      
+      &DateTimeFormat = "dd/MM/yyyy HH:mm:ss";
+      &LocalTimezoneAdjustment = False;
+      
+      &_cellStyle = %This.CreateCellStyle();
+      
+      /* CY2 ELH 06-06-2023 start */
    End-If;
-   
-   &inputSream = CreateJavaObject("java.io.FileInputStream", &_filePath);
-   &_workbook = &workbookFactory.create(&inputSream);
-   &_activeSheet = &_workbook.getSheetAt(&_workbook.getActiveSheetIndex());
-   
-   &_workBookUtils = GetJavaClass("org.apache.poi.ss.util.WorkbookUtil");
-   &_creationHelper = &_workbook.getCreationHelper();
-   
-   &_fontClass = GetJavaClass("org.apache.poi.ss.usermodel.Font");
-   &_indexedColors = GetJavaClass("org.apache.poi.ss.usermodel.IndexedColors");
-   &_dateUtil = GetJavaClass("org.apache.poi.ss.usermodel.DateUtil");
-   &DateTimeFormat = "dd/MM/yyyy HH:mm:ss";
-   
+   /* CY2 ELH 06-06-2023 end */
 end-method;
 
 method CreateSheet
    /+ &name as String +/
    
    Local string &cleanName = &_workBookUtils.createSafeSheetName(&name);
-   If &_workbook.getSheet(&cleanName) = Null Then
-      &_activeSheet = &_workbook.createSheet(&cleanName);
+   Local JavaObject &sheet = %This.GetSheet(&cleanName);
+   
+   If &sheet = Null Then
+      &_activeSheet = %This.CreateNewSheet(&cleanName);
    Else
-      &_activeSheet = &_workbook.getSheet(&cleanName);
+      &_activeSheet = &sheet;
    End-If;
+   
    &_workbook.setActiveSheet(&_workbook.getSheetIndex(&cleanName));
    
 end-method;
@@ -334,7 +419,7 @@ method SetCellString
    If &cell = Null Then
       Return;
    End-If;
-   &cell.setCellType(&StringCell);
+   
    &cell.setCellValue(&string);
 end-method;
 
@@ -348,9 +433,13 @@ method SetCellDate
    End-If;
    Local datetime &dateTime = DateTime6(Year(&date), Month(&date), Day(&date), 0, 0, 0);
    &cell.setCellValue(&dateTime);
-   Local JavaObject &style = &_workbook.createCellStyle();
-   &style.setDataFormat(&_creationHelper.createDataFormat().getFormat("dd/mm/yyyy"));
-   &cell.setCellStyle(&style);
+   
+   If &_dateStyle = Null Then
+      &_dateStyle = %This.CreateCellStyle();
+      %This.SetDataFormat(&_dateStyle, &_dataFormat.getFormat("dd/mm/yyyy"));
+   End-If;
+   &cell.setCellStyle(&_dateStyle);
+   
 end-method;
 
 method SetCellDateTime
@@ -363,9 +452,13 @@ method SetCellDateTime
       Return;
    End-If;
    &cell.setCellValue(&dateTime);
-   Local JavaObject &style = &_workbook.createCellStyle();
-   &style.setDataFormat(&_creationHelper.createDataFormat().getFormat("dd/mm/yyyy hh:mm:ss"));
-   &cell.setCellStyle(&style);
+   
+   If &_dateTimeStyle = Null Then
+      &_dateTimeStyle = %This.CreateCellStyle();
+      %This.SetDataFormat(&_dateTimeStyle, &_dataFormat.getFormat("dd/mm/yyyy hh:mm:ss"));
+   End-If;
+   &cell.setCellStyle(&_dateTimeStyle);
+   
 end-method;
 
 method SetCellFormula
@@ -382,7 +475,7 @@ method SetCellFormula
    If &first = "=" Then
       &formula = Substring(&formula, 2, Len(&formula) - 1);
    End-If;
-   &cell.setCellType(&FormulaCell);
+   
    &cell.setCellFormula(&formula);
 end-method;
 
@@ -403,15 +496,12 @@ method SetCellNumberFormat
    If &cell = Null Then
       Return;
    End-If;
-   &cell.setCellType(&NumericCell);
    &cell.setCellValue(Float(&value));
    If &format <> "" Then
-      Local JavaObject &cellStyle = &_workbook.createCellStyle();
-      Local JavaObject &currentStyle = &cell.getCellStyle();
-      &cellStyle.cloneStyleFrom(&currentStyle);
       
-      &cellStyle.setDataFormat(&_creationHelper.createDataFormat().getFormat(&format));
-      &cell.setCellStyle(&cellStyle);
+      %This.SetDataFormat(&_cellStyle, &_dataFormat.getFormat(&format));
+      &cell.setCellStyle(&_cellStyle);
+      
    End-If;
 end-method;
 
@@ -426,8 +516,8 @@ method SetCellHyperlink
    End-If;
    
    &cell.setCellValue(&text);
-   Local JavaObject &style = &_workbook.createCellStyle();
-   Local JavaObject &font = &_workbook.createFont();
+   Local JavaObject &style = %This.CreateCellStyle();
+   Local JavaObject &font = %This.CreateFont();
    &font.setUnderline(&_fontClass.U_SINGLE);
    &font.setColor(&_indexedColors.BLUE.getIndex());
    &style.setFont(&font);
@@ -440,7 +530,7 @@ method SetCellHyperlink
       &link = &_creationHelper.createHyperlink(1);
    catch Exception &exp
       Local JavaObject &hyperlinkClass = GetJavaClass("org.apache.poi.common.usermodel.HyperlinkType");
-      &link = &_creationHelper.createHyperlink(&hyperlinkClass.URL);
+      &link = %This.CreateHyperlink(&hyperlinkClass.URL);
    end-try;
    &link.setAddress(&url);
    &cell.setHyperlink(&link);
@@ -456,7 +546,7 @@ method SetCellBoolean
    If &cell = Null Then
       Return;
    End-If;
-   &cell.setCellType(&BooleanCell);
+   
    &cell.setCellValue(&boolean);
    
 end-method;
@@ -473,10 +563,10 @@ method GetCellString
    
    Local boolean &success = False;
    
-   Evaluate &cell.getCellType()
+   Evaluate &cell.getCellType().name()
    When &NumericCell
       If &_dateUtil.isCellDateFormatted(&cell) Then
-         Return DateTimeToLocalizedString(&cell.getDateCellValue(), &DateTimeFormat);
+         Return DateTimeToLocalizedString(%This.ApplyLocalTimezoneAdjustment(&cell.getDateCellValue()), &DateTimeFormat);
       Else
          Return RTrim(RTrim(String(&cell.getNumericCellValue()), "0"), ".");
       End-If;
@@ -488,7 +578,41 @@ method GetCellString
       /* formula cell, returns formula not the resolved value */
       
    When &FormulaCell
-      Return LTrim(RTrim(&cell.getCellFormula()));
+      /*Excel stores two objects for the cell when a formula calculates its value. 
+		One is the formula itself, and the second is the cached value. 
+		The cached value contains the last value evaluated by the formula.
+
+		So the idea here is we can fetch the last cached value and consider it as cell value. 
+		It may not always be true that the last cached value is the correct cell value.
+		However, when we're working with an Excel file that is saved, and there are no recent modifications to the file, 
+		then the last cached value should be the cell value.*/
+      
+      Evaluate &cell.getCachedFormulaResultType().name()
+      When &NumericCell
+         If &_dateUtil.isCellDateFormatted(&cell) Then
+            Return DateTimeToLocalizedString(%This.ApplyLocalTimezoneAdjustment(&cell.getDateCellValue()), &DateTimeFormat);
+         Else
+            Return RTrim(RTrim(String(&cell.getNumericCellValue()), "0"), ".");
+         End-If;
+         Break;
+      When &StringCell
+         Return LTrim(RTrim(&cell.getStringCellValue()));
+         Break;
+      When &BooleanCell
+         If &cell.getBooleanCellValue() Then
+            Return "TRUE"
+         Else
+            Return "FALSE";
+         End-If;
+         Break;
+      When &ErrorCell
+         Return "error: " | String(&cell.getErrorCellValue());
+         Break;
+      When-Other
+         Return "";
+         Break;
+      End-Evaluate;
+      
       Break;
       
    When &BooleanCell
@@ -521,7 +645,7 @@ method GetCellNumber
    End-If;
    
    Local boolean &success = False;
-   Evaluate &cell.getCellType()
+   Evaluate &cell.getCellType().name()
    When &NumericCell
       &value = &cell.getNumericCellValue();
       &success = True;
@@ -550,7 +674,7 @@ method GetCellBoolean
    End-If;
    
    Local boolean &success = False;
-   Evaluate &cell.getCellType()
+   Evaluate &cell.getCellType().name()
    When &BooleanCell
       &value = &cell.getBooleanCellValue();
       &success = True;
@@ -600,7 +724,7 @@ method GetCellDateTime
    End-If;
    
    Local boolean &success = False;
-   Evaluate &cell.getCellType()
+   Evaluate &cell.getCellType().name()
    When &NumericCell
       &value = &cell.getDateCellValue();
       &success = True;
@@ -613,6 +737,10 @@ method GetCellDateTime
       end-try;
       Break;
    End-Evaluate;
+   
+   /* Adjust the DateTime according to the local timezone, if requested */
+   &value = %This.ApplyLocalTimezoneAdjustment(&value);
+   
    Return &success;
 end-method;
 
@@ -626,14 +754,14 @@ method GetCell
       Return Null;
    End-If;
    
-   Local JavaObject &sheetRow = &_activeSheet.getRow(&row - 1);
+   Local JavaObject &sheetRow = %This.GetRow(&row - 1);
    If &sheetRow = Null Then
-      &sheetRow = &_activeSheet.createRow(&row - 1);
+      &sheetRow = %This.CreateRow(&row - 1);
    End-If;
    
-   Local JavaObject &cell = &sheetRow.getCell(&column - 1);
+   Local JavaObject &cell = %This.GetSheetCell(&sheetRow, &column - 1);
    If &cell = Null Then
-      &cell = &sheetRow.createCell(&column - 1);
+      &cell = %This.CreateSheetCell(&sheetRow, &column - 1);
    End-If;
    
    Return &cell;
@@ -656,7 +784,7 @@ method SelectSheet
    Local string &cleanName = &_workBookUtils.createSafeSheetName(&name);
    Local integer &index = &_workbook.getSheetIndex(&name);
    If &index >= 0 Then
-      &_activeSheet = &_workbook.getSheetAt(&index);
+      &_activeSheet = %This.GetSheetAt(&index);
       
       &_workbook.setActiveSheet(&index);
    End-If;
@@ -675,7 +803,7 @@ method ClearRow
       Return;
    End-If;
    
-   &_activeSheet.removeRow(&_activeSheet.getRow(&row - 1));
+   &_activeSheet.removeRow(%This.GetRow(&row - 1));
 end-method;
 
 method ShiftRows
@@ -718,5 +846,240 @@ end-method;
 
 method Close
    &_workbook.close();
+end-method;
+
+method ApplyLocalTimezoneAdjustment
+   /+ &dttm as DateTime +/
+   /+ Returns DateTime +/
+   
+   Local boolean &before;
+   Local datetime &newDttm = &dttm;
+   
+   /* Apply the adjustment only if desred */
+   If %This.LocalTimezoneAdjustment Then
+      /* The date is the previous day, the timezone offset is negative */
+      &before = (Substring(TimeZoneOffset(&dttm), 1, 1) = "-");
+      
+      If &before Then
+         /* We are the previous day so add one, trimming off any hours, minutes and seconds info */
+         &newDttm = AddToDateTime(DateTime6(Year(&dttm), Month(&dttm), Day(&dttm), 0, 0, 0), 0, 0, 1, 0, 0, 0);
+      End-If;
+   End-If;
+   
+   Return &newDttm;
+end-method;
+
+method CreateNewSheet
+   /+ &sheetName as String +/
+   /+ Returns JavaObject +/
+   
+   If &_createSheetMethod = Null Then
+      Local JavaObject &javaString = CreateJavaObject("java.lang.String", &sheetName);
+      Local JavaObject &stringType = CreateJavaObject("java.lang.Class[]", &javaString.getClass());
+      &_createSheetMethod = &_workbookClass.getDeclaredMethod("createSheet", &stringType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &sheetName);
+   Local JavaObject &newSheet = &_createSheetMethod.invoke(&_workbook, &args);
+   
+   Return &newSheet;
+end-method;
+
+method GetSheet
+   /+ &sheetName as String +/
+   /+ Returns JavaObject +/
+   
+   If &_getSheetMethod = Null Then
+      Local JavaObject &javaString = CreateJavaObject("java.lang.String", &sheetName);
+      Local JavaObject &stringType = CreateJavaObject("java.lang.Class[]", &javaString.getClass());
+      &_getSheetMethod = &_workbookClass.getDeclaredMethod("getSheet", &stringType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &sheetName);
+   Local JavaObject &sheet = &_getSheetMethod.invoke(&_workbook, &args);
+   
+   If &sheet = Null Then
+      Return Null;
+   Else
+      Return &sheet.getClass().cast(&sheet);
+   End-If;
+end-method;
+
+method GetSheetAt
+   /+ &index as Integer +/
+   /+ Returns JavaObject +/
+   If &_getSheetAtMethod = Null Then
+      Local JavaObject &javaInteger = CreateJavaObject("java.lang.Integer", 1);
+      Local JavaObject &intType = CreateJavaObject("java.lang.Class[]", &javaInteger.TYPE);
+      &_getSheetAtMethod = &_workbookClass.getDeclaredMethod("getSheetAt", &intType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &index);
+   Local JavaObject &sheet = &_getSheetAtMethod.invoke(&_workbook, &args);
+   If &sheet = Null Then
+      Return Null;
+   Else
+      Return &sheet.getClass().cast(&sheet);
+   End-If;
+   
+end-method;
+
+method GetRow
+   /+ &index as Integer +/
+   /+ Returns JavaObject +/
+   If &_getRowMethod = Null Then
+      Local JavaObject &javaInteger = CreateJavaObject("java.lang.Integer", 1);
+      Local JavaObject &intType = CreateJavaObject("java.lang.Class[]", &javaInteger.TYPE);
+      &_getRowMethod = &_activeSheet.getClass().getDeclaredMethod("getRow", &intType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &index);
+   Local JavaObject &sheetRow = &_getRowMethod.invoke(&_activeSheet, &args);
+   If &sheetRow = Null Then
+      Return Null;
+   Else
+      Return &sheetRow.getClass().cast(&sheetRow);
+   End-If;
+end-method;
+
+method CreateRow
+   /+ &index as Integer +/
+   /+ Returns JavaObject +/
+   If &_createRowMethod = Null Then
+      Local JavaObject &javaInteger = CreateJavaObject("java.lang.Integer", 1);
+      Local JavaObject &intType = CreateJavaObject("java.lang.Class[]", &javaInteger.TYPE);
+      &_createRowMethod = &_activeSheet.getClass().getDeclaredMethod("createRow", &intType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &index);
+   Local JavaObject &sheetRow = &_createRowMethod.invoke(&_activeSheet, &args);
+   If &sheetRow = Null Then
+      Return Null;
+   Else
+      Return &sheetRow.getClass().cast(&sheetRow);
+   End-If;
+end-method;
+
+
+method GetSheetCell
+   /+ &sheetRow as JavaObject, +/
+   /+ &index as Integer +/
+   /+ Returns JavaObject +/
+   If &_getCellMethod = Null Then
+      Local JavaObject &javaInteger = CreateJavaObject("java.lang.Integer", 1);
+      Local JavaObject &intType = CreateJavaObject("java.lang.Class[]", &javaInteger.TYPE);
+      &_getCellMethod = &sheetRow.getClass().getDeclaredMethod("getCell", &intType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &index);
+   Local JavaObject &cell = &_getCellMethod.invoke(&sheetRow, &args);
+   If &cell = Null Then
+      Return Null;
+   Else
+      Return &cell.getClass().cast(&cell);
+   End-If;
+end-method;
+
+method CreateSheetCell
+   /+ &sheetRow as JavaObject, +/
+   /+ &index as Integer +/
+   /+ Returns JavaObject +/
+   If &_createCellMethod = Null Then
+      Local JavaObject &javaInteger = CreateJavaObject("java.lang.Integer", 1);
+      Local JavaObject &intType = CreateJavaObject("java.lang.Class[]", &javaInteger.TYPE);
+      &_createCellMethod = &sheetRow.getClass().getDeclaredMethod("createCell", &intType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &index);
+   Local JavaObject &cell = &_createCellMethod.invoke(&sheetRow, &args);
+   If &cell = Null Then
+      Return Null;
+   Else
+      Return &cell.getClass().cast(&cell);
+   End-If;
+end-method;
+
+method CreateCellStyle
+   /+ Returns JavaObject +/
+   If &_createCellStyleMethod = Null Then
+      &_createCellStyleMethod = &_workbookClass.getDeclaredMethod("createCellStyle", CreateJavaObject("java.lang.Class[]"));
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]");
+   Local JavaObject &style = &_createCellStyleMethod.invoke(&_workbook, &args);
+   Return &style.getClass().cast(&style);
+end-method;
+
+method CreateFont
+   /+ Returns JavaObject +/
+   If &_createFontMethod = Null Then
+      &_createFontMethod = &_workbookClass.getDeclaredMethod("createFont", CreateJavaObject("java.lang.Class[]"));
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]");
+   Local JavaObject &font = &_createFontMethod.invoke(&_workbook, &args);
+   Return &font.getClass().cast(&font);
+end-method;
+
+method GetCellStyle
+   /+ &cell as JavaObject +/
+   /+ Returns JavaObject +/
+   If &_getCellStyleMethod = Null Then
+      &_getCellStyleMethod = &cell.getClass().getDeclaredMethod("getCellStyle", CreateJavaObject("java.lang.Class[]"));
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]");
+   Local JavaObject &style = &_getCellStyleMethod.invoke(&cell, &args);
+   Return &style.getClass().cast(&style);
+end-method;
+
+method CreateDataFormat
+   /+ Returns JavaObject +/
+   Local JavaObject &method = &_creationHelper.getClass().getDeclaredMethod("createDataFormat", CreateJavaObject("java.lang.Class[]"));
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]");
+   Local JavaObject &dataFormat = &method.invoke(&_creationHelper, &args);
+   Return &dataFormat.getClass().cast(&dataFormat);
+end-method;
+
+method SetDataFormat
+   /+ &cellStyle as JavaObject, +/
+   /+ &dataFormat as Integer +/
+   Local JavaObject &javaShort = CreateJavaObject("java.lang.Short", &dataFormat);
+   Local JavaObject &shortType = CreateJavaObject("java.lang.Class[]", &javaShort.TYPE);
+   
+   If &_setDataFormatMethod = Null Then
+      &_setDataFormatMethod = &cellStyle.getClass().getDeclaredMethod("setDataFormat", &shortType);
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &javaShort);
+   &_setDataFormatMethod.invoke(&cellStyle, &args);
+   
+end-method;
+
+method CreateHyperlink
+   /+ &type as JavaObject +/
+   /+ Returns JavaObject +/
+   If &_createHyperlinkMethod = Null Then
+      &_createHyperlinkMethod = &_creationHelper.getClass().getDeclaredMethod("createHyperlink", CreateJavaObject("java.lang.Class[]", &type.getClass()));
+   End-If;
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &type);
+   Local JavaObject &hyperlink = &_createHyperlinkMethod.invoke(&_creationHelper, &args);
+   Return &hyperlink.getClass().cast(&hyperlink);
+end-method;
+
+method CreateWorkbook
+   /+ &inputSream as JavaObject +/
+   /+ Returns JavaObject +/
+   
+   Local JavaObject &inputStreamClass = GetJavaClass("java.lang.Class").forName("java.io.InputStream");
+   Local JavaObject &workbookFactory = CreateJavaObject("org.apache.poi.xssf.usermodel.XSSFWorkbookFactory");
+   Local JavaObject &createMethod = &workbookFactory.getClass().getDeclaredMethod("create", CreateJavaObject("java.lang.Class[]", &inputStreamClass));
+   
+   Local JavaObject &args = CreateJavaObject("java.lang.Object[]", &inputSream);
+   Local JavaObject &workBook = &createMethod.invoke(&workbookFactory, &args);
+   
+   Return &workBook.getClass().cast(&workBook);
 end-method;
 
